@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social Analytics — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #111118;
+    --bg-card: #15151e;
+    --bg-card-hover: #1c1c28;
+    --bg-glass: rgba(21,21,30,0.7);
+    --border: rgba(255,255,255,0.06);
+    --border-accent: rgba(255,255,255,0.12);
+    --text-primary: #f0f0f5;
+    --text-secondary: #8888aa;
+    --text-muted: #55556a;
+    --accent: #7c6dfa;
+    --accent-glow: rgba(124,109,250,0.25);
+    --accent2: #fa6d8f;
+    --accent3: #6dfae0;
+    --green: #4ade80;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --ig: #e1306c;
+    --tt: #69c9d0;
+    --yt: #ff0000;
+    --tg: #229ed9;
+    --th: #000000;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  [data-theme="light"] {
+    --bg-primary: #f4f4fa;
+    --bg-secondary: #eaeaf5;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f7f7ff;
+    --bg-glass: rgba(255,255,255,0.8);
+    --border: rgba(0,0,0,0.07);
+    --border-accent: rgba(0,0,0,0.13);
+    --text-primary: #12121e;
+    --text-secondary: #555570;
+    --text-muted: #aaaacc;
+    --accent-glow: rgba(124,109,250,0.12);
+    --shadow: 0 8px 32px rgba(0,0,0,0.1);
+    --th: #333333;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+    overflow-x: hidden;
+  }
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+
+  /* HEADER */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .logo {
+    font-size: 18px; font-weight: 800; letter-spacing: -0.5px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px; background: var(--accent);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .header-actions { display: flex; align-items: center; gap: 10px; }
+  .btn {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 600;
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border-accent);
+    background: var(--bg-card); color: var(--text-primary);
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .btn:hover { background: var(--bg-card-hover); border-color: var(--accent); color: var(--accent); }
+  .btn-primary {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+  .btn-primary:hover { background: #9080ff; border-color: #9080ff; color: #fff; opacity: 1; }
+  .btn-icon { padding: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
+  .theme-toggle { font-size: 16px; }
+
+  /* NAV TABS */
+  .nav-tabs {
+    display: flex; gap: 2px;
+    background: var(--bg-secondary); border-radius: var(--radius-sm);
+    padding: 3px; border: 1px solid var(--border);
+  }
+  .nav-tab {
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+    padding: 6px 14px; border-radius: 6px; border: none;
+    background: transparent; color: var(--text-secondary); cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-tab.active { background: var(--bg-card); color: var(--text-primary); box-shadow: var(--shadow); }
+
+  /* CONTAINER */
+  .container { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+
+  /* PERIOD FILTER BAR */
+  .period-bar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 24px;
+    padding: 14px 18px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .period-bar label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-right: 4px; }
+  .period-btn {
+    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
+    padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-secondary); cursor: pointer;
+    transition: all 0.18s;
+  }
+  .period-btn.active, .period-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .custom-range { display: flex; align-items: center; gap: 6px; }
+  .custom-range input[type="date"] {
+    font-family: 'Syne', sans-serif; font-size: 12px;
+    padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg-secondary); color: var(--text-primary);
+    outline: none; cursor: pointer;
+  }
+  .custom-range input[type="date"]:focus { border-color: var(--accent); }
+
+  /* KPI GRID */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    position: relative; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: fadeInUp 0.4s ease both;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
+  .kpi-card::before {
+    content:''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--card-accent, var(--accent));
+  }
+  .kpi-label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 8px; }
+  .kpi-value { font-size: 28px; font-weight: 800; letter-spacing: -1px; color: var(--text-primary); line-height: 1; }
+  .kpi-sub { font-size: 12px; color: var(--text-secondary); margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+  .badge-green { color: var(--green); }
+  .badge-red { color: var(--red); }
+  .badge-yellow { color: var(--yellow); }
+
+  /* SECTION */
+  .section { margin-bottom: 28px; }
+  .section-title {
+    font-size: 16px; font-weight: 700; color: var(--text-primary);
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-title .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+  /* PLATFORM BLOCKS */
+  .platforms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .platform-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    position: relative; overflow: hidden; animation: fadeInUp 0.4s ease both;
+  }
+  .platform-card::after {
+    content: ''; position: absolute; top: 0; right: 0;
+    width: 80px; height: 80px; border-radius: 0 14px 0 80px;
+    background: var(--p-color, var(--accent)); opacity: 0.07;
+  }
+  .platform-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .platform-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .platform-name { font-size: 15px; font-weight: 700; }
+  .platform-subs { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+  .platform-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-item { background: var(--bg-secondary); border-radius: 8px; padding: 10px 12px; }
+  .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+  .stat-value { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .stat-delta { font-size: 11px; margin-top: 2px; font-weight: 600; }
+
+  /* CHARTS */
+  .charts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 18px; }
+  .chart-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    animation: fadeInUp 0.4s ease both;
+  }
+  .chart-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .chart-wrap { position: relative; height: 220px; }
+  .chart-wrap-tall { position: relative; height: 300px; }
+
+  /* FORM */
+  .form-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+  }
+  .form-sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+  .form-section { display: flex; flex-direction: column; gap: 10px; }
+  .form-section-title {
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    display: flex; align-items: center; gap: 6px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .form-row { display: flex; flex-direction: column; gap: 4px; }
+  .form-row label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .form-input {
+    font-family: 'JetBrains Mono', monospace; font-size: 14px;
+    padding: 9px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--bg-secondary);
+    color: var(--text-primary); outline: none; transition: border 0.2s;
+    width: 100%;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-input[type="date"] { cursor: pointer; }
+  .form-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); }
+  .data-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .data-table th {
+    background: var(--bg-secondary); color: var(--text-muted);
+    font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.6px;
+    padding: 10px 12px; text-align: left; white-space: nowrap;
+    border-bottom: 1px solid var(--border); cursor: pointer;
+  }
+  .data-table th:hover { color: var(--accent); }
+  .data-table td {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    color: var(--text-secondary); white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .data-table tr:hover td { background: var(--bg-card-hover); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .table-action { background: none; border: none; cursor: pointer; padding: 3px 6px; border-radius: 4px; font-size: 14px; transition: background 0.15s; }
+  .table-action:hover { background: var(--bg-secondary); }
+  .search-row { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
+  .search-input {
+    font-family: 'Syne', sans-serif; font-size: 13px;
+    flex: 1; padding: 9px 14px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--bg-secondary);
+    color: var(--text-primary); outline: none;
+  }
+  .search-input:focus { border-color: var(--accent); }
+
+  /* COMPARISON */
+  .comparison-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .comp-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px; text-align: center;
+    animation: fadeInUp 0.4s ease both;
+  }
+  .comp-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700; margin-bottom: 10px; }
+  .comp-winner { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .comp-value { font-size: 22px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+  .comp-bar-wrap { margin-top: 12px; }
+  .comp-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .comp-bar-label { font-size: 11px; width: 70px; text-align: right; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .comp-bar { flex: 1; height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden; }
+  .comp-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .comp-bar-val { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); width: 50px; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg-card); border: 1px solid var(--border-accent);
+    border-radius: var(--radius); width: 100%; max-width: 700px;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    transform: translateY(10px); transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px 0; margin-bottom: 16px;
+  }
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-close {
+    background: none; border: none; font-size: 20px; cursor: pointer;
+    color: var(--text-muted); transition: color 0.15s;
+  }
+  .modal-close:hover { color: var(--text-primary); }
+  .modal-body { padding: 0 24px 24px; }
+
+  /* TOAST */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--bg-card); border: 1px solid var(--border-accent);
+    border-radius: var(--radius-sm); padding: 12px 18px;
+    font-size: 13px; font-weight: 600; box-shadow: var(--shadow);
+    animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .big { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ANIMATIONS */
+  @keyframes fadeInUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes slideInRight { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+  @keyframes fadeOut { from { opacity:1; } to { opacity:0; } }
+
+  /* UTILITY */
+  .flex { display: flex; } .gap-8 { gap: 8px; } .wrap { flex-wrap: wrap; }
+  .mt-4 { margin-top: 4px; } .mt-8 { margin-top: 8px; }
+  .color-green { color: var(--green); } .color-red { color: var(--red); } .color-yellow { color: var(--yellow); }
+  .hidden { display: none !important; }
+  .page { display: none; } .page.active { display: block; }
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .header { padding: 0 16px; }
+    .container { padding: 16px; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+    .platforms-grid { grid-template-columns: 1fr; }
+    .comparison-grid { grid-template-columns: repeat(2, 1fr); }
+    .nav-tabs { display: none; }
+    .logo span { display: none; }
+  }
+  @media (max-width: 480px) {
+    .kpi-grid { grid-template-columns: 1fr; }
+    .comparison-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ICON COLORS */
+  .ig-icon { background: linear-gradient(135deg, #f58529, #dd2a7b, #8134af); }
+  .tt-icon { background: #000; }
+  .yt-icon { background: #ff0000; }
+  .tg-icon { background: #229ed9; }
+  .th-icon { background: #333; }
+
+  /* SCROLLABLE TABLE */
+  .table-container {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">📊</div>
+    <span>Social Analytics</span>
+  </div>
+  <nav class="nav-tabs" id="navTabs">
+    <button class="nav-tab active" data-page="dashboard">Dashboard</button>
+    <button class="nav-tab" data-page="input">+ Данные</button>
+    <button class="nav-tab" data-page="charts">Графики</button>
+    <button class="nav-tab" data-page="table">Таблица</button>
+    <button class="nav-tab" data-page="compare">Сравнение</button>
+  </nav>
+  <div class="header-actions">
+    <button class="btn btn-icon theme-toggle" id="themeToggle" title="Сменить тему">🌙</button>
+    <button class="btn" id="btnExportMenu">Экспорт ▾</button>
+    <div id="exportDropdown" style="position:absolute;top:64px;right:24px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);z-index:200;min-width:150px;display:none;">
+      <button class="btn" style="width:100%;text-align:left;border:none;border-radius:0;border-bottom:1px solid var(--border);" onclick="exportCSV()">📄 CSV</button>
+      <button class="btn" style="width:100%;text-align:left;border:none;border-radius:0;border-bottom:1px solid var(--border);" onclick="exportExcel()">📊 Excel</button>
+      <button class="btn" style="width:100%;text-align:left;border:none;border-radius:0;border-bottom:1px solid var(--border);" onclick="exportJSON()">📋 JSON</button>
+      <button class="btn" style="width:100%;text-align:left;border:none;border-radius:0;" onclick="importJSONTrigger()">📥 Импорт JSON</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+  </div>
+</header>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- MODAL: EDIT -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Редактировать запись</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="editModalBody"></div>
+  </div>
+</div>
+
+<!-- MAIN CONTAINER -->
+<div class="container">
+
+  <!-- PERIOD BAR (global) -->
+  <div class="period-bar" id="periodBar">
+    <label>Период:</label>
+    <button class="period-btn" data-period="today">Сегодня</button>
+    <button class="period-btn" data-period="yesterday">Вчера</button>
+    <button class="period-btn active" data-period="7d">7 дней</button>
+    <button class="period-btn" data-period="30d">30 дней</button>
+    <button class="period-btn" data-period="90d">90 дней</button>
+    <button class="period-btn" data-period="month">Этот месяц</button>
+    <button class="period-btn" data-period="prevmonth">Прошлый месяц</button>
+    <button class="period-btn" data-period="custom">Custom</button>
+    <div class="custom-range hidden" id="customRange">
+      <input type="date" id="dateFrom" placeholder="От">
+      <span style="color:var(--text-muted)">—</span>
+      <input type="date" id="dateTo" placeholder="До">
+      <button class="btn btn-primary" style="padding:5px 12px;font-size:12px;" onclick="applyCustomRange()">OK</button>
+    </div>
+  </div>
+
+  <!-- === PAGE: DASHBOARD === -->
+  <div class="page active" id="page-dashboard">
+
+    <!-- KPI -->
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <!-- Platform Blocks -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Платформы</div>
+      <div class="platforms-grid" id="platformsGrid"></div>
+    </div>
+
+    <!-- Best/Worst days -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Дополнительная аналитика</div>
+      <div class="platforms-grid" id="extraAnalytics"></div>
+    </div>
+
+  </div>
+
+  <!-- === PAGE: INPUT === -->
+  <div class="page" id="page-input">
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Добавить / редактировать запись</div>
+      <div class="form-card">
+        <div class="form-sections" id="dataForm"></div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="saveRecord()">💾 Сохранить запись</button>
+          <button class="btn" onclick="clearForm()">✕ Очистить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- === PAGE: CHARTS === -->
+  <div class="page" id="page-charts">
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Графики</div>
+      <div class="charts-grid" id="chartsGrid">
+        <div class="chart-card" style="grid-column: 1 / -1;">
+          <div class="chart-title">📈 Общий рост аудитории</div>
+          <div class="chart-wrap-tall"><canvas id="chartAll"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">📷 Instagram — подписчики</div>
+          <div class="chart-wrap"><canvas id="chartIG"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">🎵 TikTok — подписчики</div>
+          <div class="chart-wrap"><canvas id="chartTT"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">▶️ YouTube — подписчики</div>
+          <div class="chart-wrap"><canvas id="chartYT"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">✈️ Telegram — подписчики</div>
+          <div class="chart-wrap"><canvas id="chartTG"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">🧵 Threads — подписчики</div>
+          <div class="chart-wrap"><canvas id="chartTH"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">👁️ Просмотры по платформам</div>
+          <div class="chart-wrap"><canvas id="chartViews"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">📊 Instagram — охват и просмотры</div>
+          <div class="chart-wrap"><canvas id="chartIGReach"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- === PAGE: TABLE === -->
+  <div class="page" id="page-table">
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Все записи</div>
+      <div class="table-container">
+        <div class="search-row">
+          <input type="text" class="search-input" id="searchInput" placeholder="🔍 Поиск по дате..." oninput="renderTable()">
+          <button class="btn" onclick="renderTable()">Обновить</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="dataTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- === PAGE: COMPARE === -->
+  <div class="page" id="page-compare">
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Сравнение платформ</div>
+      <div class="comparison-grid" id="compGrid"></div>
+    </div>
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Рейтинги платформ</div>
+      <div class="charts-grid" id="compCharts">
+        <div class="chart-card">
+          <div class="chart-title">🏆 Подписчики по платформам</div>
+          <div class="chart-wrap"><canvas id="chartCompSubs"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">📈 Прирост за период</div>
+          <div class="chart-wrap"><canvas id="chartCompGrowth"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">👁️ Общие просмотры</div>
+          <div class="chart-wrap"><canvas id="chartCompViews"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">❤️ Вовлеченность (лайки + коммент.)</div>
+          <div class="chart-wrap"><canvas id="chartCompEngage"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+/* ===================== CONFIG ===================== */
+const PLATFORMS = [
+  {
+    id: 'ig', name: 'Instagram', icon: '📷', color: '#e1306c',
+    cssClass: 'ig-icon',
+    fields: [
+      { key: 'ig_subs', label: 'Подписчики', type: 'number' },
+      { key: 'ig_story_views', label: 'Просм. сторис', type: 'number' },
+      { key: 'ig_reels_views', label: 'Просм. рилс', type: 'number' },
+      { key: 'ig_reach', label: 'Охват', type: 'number' },
+      { key: 'ig_likes', label: 'Лайки', type: 'number' },
+      { key: 'ig_comments', label: 'Комментарии', type: 'number' },
+    ]
+  },
+  {
+    id: 'tt', name: 'TikTok', icon: '🎵', color: '#69c9d0',
+    cssClass: 'tt-icon',
+    fields: [
+      { key: 'tt_subs', label: 'Подписчики', type: 'number' },
+      { key: 'tt_views', label: 'Просмотры', type: 'number' },
+      { key: 'tt_likes', label: 'Лайки', type: 'number' },
+      { key: 'tt_comments', label: 'Комментарии', type: 'number' },
+    ]
+  },
+  {
+    id: 'yt', name: 'YouTube', icon: '▶️', color: '#ff0000',
+    cssClass: 'yt-icon',
+    fields: [
+      { key: 'yt_subs', label: 'Подписчики', type: 'number' },
+      { key: 'yt_views', label: 'Просмотры', type: 'number' },
+      { key: 'yt_hours', label: 'Часы просм.', type: 'number' },
+    ]
+  },
+  {
+    id: 'tg', name: 'Telegram', icon: '✈️', color: '#229ed9',
+    cssClass: 'tg-icon',
+    fields: [
+      { key: 'tg_subs', label: 'Подписчики', type: 'number' },
+      { key: 'tg_views', label: 'Просм. постов', type: 'number' },
+    ]
+  },
+  {
+    id: 'th', name: 'Threads', icon: '🧵', color: '#888',
+    cssClass: 'th-icon',
+    fields: [
+      { key: 'th_subs', label: 'Подписчики', type: 'number' },
+      { key: 'th_views', label: 'Просмотры', type: 'number' },
+    ]
+  }
+];
+
+const SUBS_KEY = { ig:'ig_subs', tt:'tt_subs', yt:'yt_subs', tg:'tg_subs', th:'th_subs' };
+const VIEWS_KEY = { ig:'ig_reels_views', tt:'tt_views', yt:'yt_views', tg:'tg_views', th:'th_views' };
+const ENGAGE_KEY = { ig: r=>(v(r,'ig_likes')+v(r,'ig_comments')), tt: r=>(v(r,'tt_likes')+v(r,'tt_comments')), yt:null, tg:null, th:null };
+
+/* ===================== DATA ===================== */
+let records = [];
+let editingId = null;
+let currentPeriod = '7d';
+let customFrom = null, customTo = null;
+const charts = {};
+
+function loadData() {
+  const d = localStorage.getItem('sa_records');
+  if (d) records = JSON.parse(d);
+  records.sort((a,b)=>a.date.localeCompare(b.date));
+}
+function saveData() {
+  localStorage.setItem('sa_records', JSON.stringify(records));
+}
+function v(r, key) { return parseInt(r[key]) || 0; }
+function num(n) { if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n||0); }
+function delta(n) { if(n>0) return `<span class="badge-green">▲ ${num(n)}</span>`; if(n<0) return `<span class="badge-red">▼ ${num(Math.abs(n))}</span>`; return `<span style="color:var(--text-muted)">— 0</span>`; }
+function pct(a,b) { if(!b) return '—'; return ((a-b)/b*100).toFixed(1)+'%'; }
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function fmtDate(d) { if(!d) return '—'; const [y,m,dd]=d.split('-'); return `${dd}.${m}.${y}`; }
+
+/* ===================== PERIOD ===================== */
+function getPeriodDates() {
+  const now = new Date();
+  const today = now.toISOString().slice(0,10);
+  const yest = new Date(now-86400000).toISOString().slice(0,10);
+  const ago = (n) => new Date(now-(n*86400000)).toISOString().slice(0,10);
+  const m1 = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+  const pm1 = new Date(now.getFullYear(), now.getMonth()-1, 1).toISOString().slice(0,10);
+  const pm2 = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0,10);
+  switch(currentPeriod) {
+    case 'today': return [today, today];
+    case 'yesterday': return [yest, yest];
+    case '7d': return [ago(6), today];
+    case '30d': return [ago(29), today];
+    case '90d': return [ago(89), today];
+    case 'month': return [m1, today];
+    case 'prevmonth': return [pm1, pm2];
+    case 'custom': return [customFrom||ago(6), customTo||today];
+    default: return [ago(6), today];
+  }
+}
+function getFilteredRecords() {
+  const [from, to] = getPeriodDates();
+  return records.filter(r=>r.date>=from && r.date<=to);
+}
+function getLatestRecord(pid) {
+  const key = SUBS_KEY[pid];
+  for(let i=records.length-1;i>=0;i--) { if(records[i][key]) return records[i]; }
+  return null;
+}
+function getFirstInPeriod(pid) {
+  const [from] = getPeriodDates();
+  const key = SUBS_KEY[pid];
+  for(let i=0;i<records.length;i++) { if(records[i].date>=from && records[i][key]) return records[i]; }
+  return null;
+}
+
+/* ===================== THEME ===================== */
+let theme = localStorage.getItem('sa_theme') || 'dark';
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme==='dark' ? '☀️' : '🌙';
+}
+document.getElementById('themeToggle').onclick = () => {
+  theme = theme==='dark' ? 'light' : 'dark';
+  localStorage.setItem('sa_theme', theme);
+  applyTheme();
+  refreshCharts();
+};
+
+/* ===================== NAVIGATION ===================== */
+document.querySelectorAll('.nav-tab').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const pg = btn.dataset.page;
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+pg).classList.add('active');
+    if(pg==='charts') setTimeout(refreshCharts,50);
+    if(pg==='compare') setTimeout(renderComparison,50);
+  };
+});
+
+/* ===================== PERIOD BAR ===================== */
+document.querySelectorAll('.period-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPeriod = btn.dataset.period;
+    document.getElementById('customRange').classList.toggle('hidden', currentPeriod!=='custom');
+    refreshAll();
+  };
+});
+function applyCustomRange() {
+  customFrom = document.getElementById('dateFrom').value;
+  customTo = document.getElementById('dateTo').value;
+  refreshAll();
+}
+
+/* ===================== FORM ===================== */
+function buildForm(data={}) {
+  const container = document.getElementById('dataForm');
+  container.innerHTML = '';
+  // Date section
+  const dateSection = document.createElement('div');
+  dateSection.className = 'form-section';
+  dateSection.innerHTML = `
+    <div class="form-section-title">📅 Дата</div>
+    <div class="form-row">
+      <label>Дата</label>
+      <input type="date" class="form-input" id="f_date" value="${data.date||new Date().toISOString().slice(0,10)}">
+    </div>`;
+  container.appendChild(dateSection);
+  PLATFORMS.forEach(p => {
+    const sec = document.createElement('div');
+    sec.className = 'form-section';
+    let html = `<div class="form-section-title" style="color:${p.color}">${p.icon} ${p.name}</div>`;
+    p.fields.forEach(f => {
+      html += `<div class="form-row"><label>${f.label}</label><input type="number" class="form-input" id="f_${f.key}" placeholder="0" value="${data[f.key]||''}"></div>`;
+    });
+    sec.innerHTML = html;
+    container.appendChild(sec);
+  });
+}
+function clearForm() { buildForm(); editingId=null; }
+function getFormData() {
+  const d = { id: editingId||uid(), date: document.getElementById('f_date').value };
+  PLATFORMS.forEach(p => p.fields.forEach(f => {
+    const val = document.getElementById('f_'+f.key)?.value;
+    if(val!==undefined && val!=='') d[f.key] = parseInt(val)||0;
+  }));
+  return d;
+}
+function saveRecord() {
+  const d = getFormData();
+  if(!d.date) { toast('⚠️ Укажите дату', 'warn'); return; }
+  if(editingId) {
+    const idx = records.findIndex(r=>r.id===editingId);
+    if(idx>=0) records[idx]=d;
+  } else {
+    records.push(d);
+  }
+  records.sort((a,b)=>a.date.localeCompare(b.date));
+  saveData(); editingId=null; buildForm();
+  refreshAll(); toast('✅ Запись сохранена');
+}
+
+/* ===================== DASHBOARD ===================== */
+function renderDashboard() {
+  renderKPI();
+  renderPlatforms();
+  renderExtraAnalytics();
+}
+
+function renderKPI() {
+  const el = document.getElementById('kpiGrid');
+  const filtered = getFilteredRecords();
+  // Total subs
+  let totalSubs = 0;
+  PLATFORMS.forEach(p => {
+    const last = getLatestRecord(p.id);
+    if(last) totalSubs += v(last, SUBS_KEY[p.id]);
+  });
+  // Growth
+  let totalGrowth = 0;
+  let bestGrowthP = null, bestGrowthV = 0;
+  PLATFORMS.forEach(p => {
+    const last = getLatestRecord(p.id);
+    const first = getFirstInPeriod(p.id);
+    if(last && first) {
+      const g = v(last, SUBS_KEY[p.id]) - v(first, SUBS_KEY[p.id]);
+      totalGrowth += g;
+      if(g>bestGrowthV) { bestGrowthV=g; bestGrowthP=p; }
+    }
+  });
+  // Best views
+  let bestViewsP = null, bestViewsV = 0;
+  PLATFORMS.forEach(p => {
+    let totalV = filtered.reduce((s,r)=>s+v(r,VIEWS_KEY[p.id]),0);
+    if(totalV>bestViewsV) { bestViewsV=totalV; bestViewsP=p; }
+  });
+  // Avg daily growth
+  const days = filtered.length || 1;
+  const avgDaily = (totalGrowth/days).toFixed(0);
+  // Growth pct
+  let prevSubs = 0;
+  PLATFORMS.forEach(p => {
+    const first = getFirstInPeriod(p.id);
+    if(first) prevSubs += v(first, SUBS_KEY[p.id]);
+  });
+  const growthPct = prevSubs ? ((totalSubs-prevSubs)/prevSubs*100).toFixed(1) : 0;
+
+  const kpis = [
+    { label:'Всего подписчиков', value:num(totalSubs), sub:'Все платформы', accent:'#7c6dfa' },
+    { label:'Прирост за период', value:(totalGrowth>=0?'+':'')+num(totalGrowth), sub:'Подписчики', accent: totalGrowth>=0 ? '#4ade80':'#f87171', pos: totalGrowth>=0 },
+    { label:'Лучший рост', value: bestGrowthP ? bestGrowthP.name : '—', sub: bestGrowthP ? `+${num(bestGrowthV)} подп.` : '', accent:'#fbbf24' },
+    { label:'Больше просмотров', value: bestViewsP ? bestViewsP.name : '—', sub: bestViewsP ? num(bestViewsV)+' просм.' : '', accent:'#fa6d8f' },
+    { label:'Ср. рост в день', value:(avgDaily>=0?'+':'')+num(avgDaily), sub:'Подписчики/день', accent:'#6dfae0' },
+    { label:'Рост аудитории', value: growthPct+'%', sub:'За выбранный период', accent: growthPct>=0 ? '#4ade80':'#f87171' },
+  ];
+  el.innerHTML = kpis.map((k,i)=>`
+    <div class="kpi-card" style="--card-accent:${k.accent}; animation-delay:${i*0.05}s">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+function renderPlatforms() {
+  const el = document.getElementById('platformsGrid');
+  el.innerHTML = PLATFORMS.map((p,i) => {
+    const last = getLatestRecord(p.id);
+    const first = getFirstInPeriod(p.id);
+    const subsNow = last ? v(last, SUBS_KEY[p.id]) : 0;
+    const subsFirst = first ? v(first, SUBS_KEY[p.id]) : 0;
+    const growth = subsNow - subsFirst;
+    const filtered = getFilteredRecords();
+    const totalViews = filtered.reduce((s,r)=>s+v(r,VIEWS_KEY[p.id]),0);
+    // extra stat
+    let extraLabel='', extraVal=0;
+    if(p.id==='ig') { extraLabel='Охват'; extraVal=filtered.reduce((s,r)=>s+v(r,'ig_reach'),0); }
+    else if(p.id==='yt') { extraLabel='Часы просм.'; extraVal=filtered.reduce((s,r)=>s+v(r,'yt_hours'),0); }
+    else if(p.id==='tt') { extraLabel='Лайки'; extraVal=filtered.reduce((s,r)=>s+v(r,'tt_likes'),0); }
+    else if(p.id==='tg') { extraLabel='Просм. постов'; extraVal=totalViews; }
+    else { extraLabel='Просмотры'; extraVal=totalViews; }
+
+    return `<div class="platform-card" style="--p-color:${p.color}; animation-delay:${i*0.06}s">
+      <div class="platform-header">
+        <div class="platform-icon ${p.cssClass}">${p.icon}</div>
+        <div>
+          <div class="platform-name" style="color:${p.color}">${p.name}</div>
+          <div class="platform-subs">${num(subsNow)} подписчиков</div>
+        </div>
+      </div>
+      <div class="platform-stats">
+        <div class="stat-item">
+          <div class="stat-label">Рост (период)</div>
+          <div class="stat-value" style="color:${growth>=0?'var(--green)':'var(--red)'}">${growth>=0?'+':''}${num(growth)}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Просмотры</div>
+          <div class="stat-value">${num(totalViews)}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">${extraLabel||'Охват'}</div>
+          <div class="stat-value">${num(extraVal)}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">% Рост</div>
+          <div class="stat-value" style="color:${growth>=0?'var(--green)':'var(--red)'}">${subsFirst?((growth/subsFirst)*100).toFixed(1)+'%':'—'}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderExtraAnalytics() {
+  const el = document.getElementById('extraAnalytics');
+  if(!records.length) { el.innerHTML='<div class="empty-state"><div class="big">📊</div><p>Добавьте данные для аналитики</p></div>'; return; }
+  const filtered = getFilteredRecords();
+  // Best day: max total subs growth
+  let bestDay=null, worstDay=null, bestDayGrowth=-Infinity, worstDayGrowth=Infinity;
+  for(let i=1;i<records.length;i++) {
+    const r=records[i], prev=records[i-1];
+    let g=0;
+    PLATFORMS.forEach(p=>{ g+=v(r,SUBS_KEY[p.id])-v(prev,SUBS_KEY[p.id]); });
+    if(g>bestDayGrowth) { bestDayGrowth=g; bestDay=r; }
+    if(g<worstDayGrowth) { worstDayGrowth=g; worstDay=r; }
+  }
+  // Avg views
+  const totalRows = filtered.length||1;
+  let totalViewsAll=0; filtered.forEach(r=>{ PLATFORMS.forEach(p=>{ totalViewsAll+=v(r,VIEWS_KEY[p.id]); }); });
+  const avgViews = Math.round(totalViewsAll/totalRows);
+  // Avg engagement (IG+TT)
+  let totalEngage=0; filtered.forEach(r=>{ totalEngage+=v(r,'ig_likes')+v(r,'ig_comments')+v(r,'tt_likes')+v(r,'tt_comments'); });
+  const avgEngage = Math.round(totalEngage/totalRows);
+
+  el.innerHTML = [
+    { label:'🏆 Лучший день', val: bestDay?fmtDate(bestDay.date):'—', sub:bestDay?`+${num(bestDayGrowth)} подп.`:''},
+    { label:'📉 Слабый день', val: worstDay?fmtDate(worstDay.date):'—', sub:worstDay?`${num(worstDayGrowth)} подп.`:''},
+    { label:'👁 Ср. просмотры/день', val: num(avgViews), sub:'Все платформы'},
+    { label:'❤️ Ср. вовлеченность', val: num(avgEngage), sub:'Лайки + комментарии'},
+  ].map((c,i)=>`<div class="platform-card" style="animation-delay:${i*0.06}s">
+    <div class="platform-header"><div>
+      <div class="platform-name">${c.label}</div>
+      <div class="platform-subs">${c.sub||''}</div>
+    </div></div>
+    <div class="kpi-value" style="font-size:32px">${c.val}</div>
+  </div>`).join('');
+}
+
+/* ===================== CHARTS ===================== */
+function getChartColors() {
+  return { text: theme==='dark'?'#8888aa':'#666680', grid: theme==='dark'?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.06)' };
+}
+function baseChartOpts(title='') {
+  const c = getChartColors();
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ color:c.text, font:{family:'Syne',size:11}, boxWidth:12 } },
+      tooltip:{ backgroundColor:'rgba(15,15,25,0.95)', titleColor:'#f0f0f5', bodyColor:'#8888aa', borderColor:'rgba(124,109,250,0.4)', borderWidth:1, titleFont:{family:'Syne',weight:'700'}, bodyFont:{family:'JetBrains Mono'}, padding:12 }
+    },
+    scales:{
+      x:{ ticks:{color:c.text,font:{family:'Syne',size:10}}, grid:{color:c.grid} },
+      y:{ ticks:{color:c.text,font:{family:'JetBrains Mono',size:10}}, grid:{color:c.grid}, beginAtZero:false }
+    }
+  };
+}
+function lineDataset(label, data, color) {
+  return { label, data, borderColor:color, backgroundColor:color+'22', fill:true, tension:0.4, pointRadius:3, pointHoverRadius:6, borderWidth:2 };
+}
+function destroyChart(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function refreshCharts() {
+  const filtered = getFilteredRecords();
+  const labels = filtered.map(r=>fmtDate(r.date));
+
+  // Chart All
+  destroyChart('all');
+  charts['all'] = new Chart(document.getElementById('chartAll'), {
+    type:'line',
+    data:{ labels, datasets: PLATFORMS.map(p=>lineDataset(p.name, filtered.map(r=>v(r,SUBS_KEY[p.id])||null), p.color)) },
+    options:{ ...baseChartOpts(), plugins:{...baseChartOpts().plugins} }
+  });
+
+  // Individual subs charts
+  const chartMap = { ig:'chartIG', tt:'chartTT', yt:'chartYT', tg:'chartTG', th:'chartTH' };
+  PLATFORMS.forEach(p => {
+    const id = chartMap[p.id];
+    destroyChart(id);
+    charts[id] = new Chart(document.getElementById(id), {
+      type:'line',
+      data:{ labels, datasets:[lineDataset('Подписчики', filtered.map(r=>v(r,SUBS_KEY[p.id])||null), p.color)] },
+      options: baseChartOpts()
+    });
+  });
+
+  // Views across platforms
+  destroyChart('views');
+  charts['views'] = new Chart(document.getElementById('chartViews'), {
+    type:'bar',
+    data:{ labels, datasets: PLATFORMS.map(p=>({
+      label:p.name, data:filtered.map(r=>v(r,VIEWS_KEY[p.id])||null),
+      backgroundColor:p.color+'88', borderColor:p.color, borderWidth:1, borderRadius:4
+    }))},
+    options: baseChartOpts()
+  });
+
+  // IG Reach
+  destroyChart('igreach');
+  charts['igreach'] = new Chart(document.getElementById('chartIGReach'), {
+    type:'line',
+    data:{ labels, datasets:[
+      lineDataset('Охват', filtered.map(r=>v(r,'ig_reach')||null), '#e1306c'),
+      lineDataset('Рилс', filtered.map(r=>v(r,'ig_reels_views')||null), '#fa8c2a'),
+      lineDataset('Сторис', filtered.map(r=>v(r,'ig_story_views')||null), '#8134af'),
+    ]},
+    options: baseChartOpts()
+  });
+}
+
+/* ===================== TABLE ===================== */
+function renderTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const rows = records.filter(r=>!search || r.date.includes(search) || fmtDate(r.date).includes(search));
+  rows.sort((a,b)=>b.date.localeCompare(a.date));
+
+  const thead = document.getElementById('tableHead');
+  const tbody = document.getElementById('tableBody');
+  const cols = ['Дата', 'IG Подп.','IG Рилс','IG Охват','IG Лайки','TT Подп.','TT Просм.','YT Подп.','YT Просм.','TG Подп.','TG Просм.','TH Подп.','TH Просм.','Действия'];
+  thead.innerHTML = `<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+
+  if(!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--text-muted);padding:40px">Нет данных</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r=>`<tr>
+    <td style="font-weight:700;color:var(--text-primary)">${fmtDate(r.date)}</td>
+    <td>${num(v(r,'ig_subs'))}</td><td>${num(v(r,'ig_reels_views'))}</td><td>${num(v(r,'ig_reach'))}</td><td>${num(v(r,'ig_likes'))}</td>
+    <td>${num(v(r,'tt_subs'))}</td><td>${num(v(r,'tt_views'))}</td>
+    <td>${num(v(r,'yt_subs'))}</td><td>${num(v(r,'yt_views'))}</td>
+    <td>${num(v(r,'tg_subs'))}</td><td>${num(v(r,'tg_views'))}</td>
+    <td>${num(v(r,'th_subs'))}</td><td>${num(v(r,'th_views'))}</td>
+    <td>
+      <button class="table-action" onclick="editRecord('${r.id}')" title="Редактировать">✏️</button>
+      <button class="table-action" onclick="deleteRecord('${r.id}')" title="Удалить">🗑️</button>
+    </td>
+  </tr>`).join('');
+}
+
+function editRecord(id) {
+  const r = records.find(x=>x.id===id);
+  if(!r) return;
+  editingId = id;
+  // Switch to input page
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelector('[data-page="input"]').classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-input').classList.add('active');
+  buildForm(r);
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('✏️ Запись загружена для редактирования');
+}
+
+function deleteRecord(id) {
+  if(!confirm('Удалить эту запись?')) return;
+  records = records.filter(r=>r.id!==id);
+  saveData(); refreshAll(); toast('🗑️ Удалено');
+}
+
+/* ===================== COMPARISON ===================== */
+function renderComparison() {
+  const filtered = getFilteredRecords();
+
+  // Subs
+  const subsData = PLATFORMS.map(p=>({ p, val: (()=>{ const l=getLatestRecord(p.id); return l?v(l,SUBS_KEY[p.id]):0; })() }));
+  subsData.sort((a,b)=>b.val-a.val);
+  // Growth
+  const growthData = PLATFORMS.map(p=>({ p, val: (()=>{
+    const l=getLatestRecord(p.id), f=getFirstInPeriod(p.id);
+    return (l&&f)?v(l,SUBS_KEY[p.id])-v(f,SUBS_KEY[p.id]):0;
+  })() }));
+  growthData.sort((a,b)=>b.val-a.val);
+  // Views
+  const viewsData = PLATFORMS.map(p=>({ p, val: filtered.reduce((s,r)=>s+v(r,VIEWS_KEY[p.id]),0) }));
+  viewsData.sort((a,b)=>b.val-a.val);
+  // Engagement
+  const engData = PLATFORMS.map(p=>({ p, val: filtered.reduce((s,r)=>s+v(r,'ig_likes')+v(r,'ig_comments')+v(r,'tt_likes')+v(r,'tt_comments'),0) }));
+  // engagement per platform
+  const engDataP = [
+    { p:PLATFORMS[0], val: filtered.reduce((s,r)=>s+v(r,'ig_likes')+v(r,'ig_comments'),0) },
+    { p:PLATFORMS[1], val: filtered.reduce((s,r)=>s+v(r,'tt_likes')+v(r,'tt_comments'),0) },
+    ...PLATFORMS.slice(2).map(p=>({p,val:0}))
+  ].sort((a,b)=>b.val-a.val);
+
+  function barHTML(data) {
+    const max = data[0]?.val||1;
+    return data.map(d=>`<div class="comp-bar-row">
+      <div class="comp-bar-label">${d.p.icon} ${d.p.name}</div>
+      <div class="comp-bar"><div class="comp-bar-fill" style="width:${(d.val/max*100).toFixed(0)}%;background:${d.p.color}"></div></div>
+      <div class="comp-bar-val">${num(d.val)}</div>
+    </div>`).join('');
+  }
+
+  document.getElementById('compGrid').innerHTML = [
+    { label:'🏆 Больше всего подписчиков', winner: subsData[0]?.p.name||'—', val: num(subsData[0]?.val||0), bars: barHTML(subsData) },
+    { label:'📈 Лучший рост (период)', winner: growthData[0]?.p.name||'—', val: (growthData[0]?.val>=0?'+':'')+num(growthData[0]?.val||0), bars: barHTML(growthData) },
+    { label:'👁️ Больше просмотров', winner: viewsData[0]?.p.name||'—', val: num(viewsData[0]?.val||0), bars: barHTML(viewsData) },
+    { label:'❤️ Лучшая вовлеченность', winner: engDataP[0]?.p.name||'—', val: num(engDataP[0]?.val||0), bars: barHTML(engDataP) },
+  ].map((c,i)=>`<div class="comp-card" style="animation-delay:${i*0.06}s">
+    <div class="comp-label">${c.label}</div>
+    <div class="comp-winner" style="color:var(--accent)">${c.winner}</div>
+    <div class="comp-value">${c.val}</div>
+    <div class="comp-bar-wrap">${c.bars}</div>
+  </div>`).join('');
+
+  // Comparison charts
+  renderCompCharts(subsData, growthData, viewsData, engDataP);
+}
+
+function renderCompCharts(subsData, growthData, viewsData, engDataP) {
+  const c = getChartColors();
+  const labels = PLATFORMS.map(p=>p.name);
+  const colors = PLATFORMS.map(p=>p.color);
+
+  function barOpts() {
+    return { responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(15,15,25,0.95)', titleColor:'#f0f0f5', bodyColor:'#8888aa', borderColor:'rgba(124,109,250,0.4)', borderWidth:1, padding:10 } },
+      scales:{ x:{ticks:{color:c.text,font:{family:'Syne',size:10}},grid:{color:c.grid}}, y:{ticks:{color:c.text,font:{family:'JetBrains Mono',size:10}},grid:{color:c.grid}} }
+    };
+  }
+
+  const charts2 = [
+    { id:'chartCompSubs', data: PLATFORMS.map(p=>{ const l=getLatestRecord(p.id); return l?v(l,SUBS_KEY[p.id]):0; }) },
+    { id:'chartCompGrowth', data: PLATFORMS.map(p=>{ const l=getLatestRecord(p.id),f=getFirstInPeriod(p.id); return(l&&f)?v(l,SUBS_KEY[p.id])-v(f,SUBS_KEY[p.id]):0; }) },
+    { id:'chartCompViews', data: PLATFORMS.map(p=>getFilteredRecords().reduce((s,r)=>s+v(r,VIEWS_KEY[p.id]),0)) },
+    { id:'chartCompEngage', data: [
+      getFilteredRecords().reduce((s,r)=>s+v(r,'ig_likes')+v(r,'ig_comments'),0),
+      getFilteredRecords().reduce((s,r)=>s+v(r,'tt_likes')+v(r,'tt_comments'),0),
+      0,0,0
+    ]},
+  ];
+  charts2.forEach(({id,data})=>{
+    destroyChart(id);
+    charts[id] = new Chart(document.getElementById(id), {
+      type:'bar',
+      data:{ labels, datasets:[{ data, backgroundColor:colors.map(c=>c+'99'), borderColor:colors, borderWidth:2, borderRadius:6 }] },
+      options: barOpts()
+    });
+  });
+}
+
+/* ===================== EXPORT/IMPORT ===================== */
+document.getElementById('btnExportMenu').onclick = (e) => {
+  e.stopPropagation();
+  const dd = document.getElementById('exportDropdown');
+  dd.style.display = dd.style.display==='none'?'block':'none';
+};
+document.addEventListener('click', ()=>{ document.getElementById('exportDropdown').style.display='none'; });
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(records,null,2)], {type:'application/json'});
+  downloadBlob(blob, 'social_analytics_'+today()+'.json');
+  toast('📋 JSON экспортирован');
+}
+function importJSONTrigger() { document.getElementById('importFile').click(); }
+function importJSON(e) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(Array.isArray(data)) {
+        records = data; saveData(); refreshAll();
+        toast('📥 Импортировано '+data.length+' записей');
+      }
+    } catch { toast('❌ Ошибка импорта','error'); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+function exportCSV() {
+  const keys = ['date',...PLATFORMS.flatMap(p=>p.fields.map(f=>f.key))];
+  const header = ['Дата',...PLATFORMS.flatMap(p=>p.fields.map(f=>p.name+' — '+f.label))];
+  const rows = records.map(r=>keys.map(k=>r[k]||'').join(','));
+  const csv = [header.join(','), ...rows].join('\n');
+  downloadBlob(new Blob(['\ufeff'+csv],{type:'text/csv'}), 'social_analytics_'+today()+'.csv');
+  toast('📄 CSV экспортирован');
+}
+function exportExcel() {
+  const keys = ['date',...PLATFORMS.flatMap(p=>p.fields.map(f=>f.key))];
+  const header = ['Дата',...PLATFORMS.flatMap(p=>p.fields.map(f=>p.name+' '+f.label))];
+  const ws_data = [header,...records.map(r=>keys.map(k=>r[k]||''))];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, 'Аналитика');
+  XLSX.writeFile(wb, 'social_analytics_'+today()+'.xlsx');
+  toast('📊 Excel экспортирован');
+}
+function downloadBlob(blob, name) {
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+}
+function today() { return new Date().toISOString().slice(0,10); }
+
+/* ===================== MODAL ===================== */
+function closeModal() { document.getElementById('editModal').classList.remove('open'); }
+document.getElementById('editModal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal(); });
+
+/* ===================== TOAST ===================== */
+function toast(msg, type='success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.style.borderLeftColor = type==='error'?'var(--red)':type==='warn'?'var(--yellow)':'var(--green)';
+  t.style.borderLeftWidth = '3px'; t.style.borderLeftStyle = 'solid';
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(), 3200);
+}
+
+/* ===================== REFRESH ALL ===================== */
+function refreshAll() {
+  const activePage = document.querySelector('.page.active')?.id;
+  renderDashboard();
+  renderTable();
+  if(activePage==='page-charts') refreshCharts();
+  if(activePage==='page-compare') renderComparison();
+}
+
+/* ===================== INIT ===================== */
+loadData();
+applyTheme();
+buildForm();
+refreshAll();
+</script>
+</body>
+</html>
